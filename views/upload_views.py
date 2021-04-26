@@ -7,7 +7,7 @@ import datetime
 import torch
 import torch.backends.cudnn as cudnn
 
-from recognition import imgproc, pipeline
+from recognition import pipeline
 from recognition.craft import CRAFT
 from recognition.model import Model
 from recognition.utils import CTCLabelConverter, AttnLabelConverter
@@ -39,7 +39,7 @@ def execute_net():
     # LinkRefiner
     refine_net = None
     if args.refine:
-        from refinenet import RefineNet
+        from recognition.refinenet import RefineNet
 
         refine_net = RefineNet()
         print('Loading weights of refiner from checkpoint (' + args.refiner_model + ')')

@@ -21,6 +21,7 @@ parser.add_argument('--result_folder', default='results/', type=str, help='folde
 parser.add_argument('--upload_folder', default='upload/', type=str, help='folder path to upload images')
 parser.add_argument('--result_width', default=500, type=int, help='image size of result image')
 parser.add_argument('--crop_height', default=20, type=int, help='web image size of crop image')
+parser.add_argument('--crop_width', default=200, type=int, help='web image size of crop image')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 

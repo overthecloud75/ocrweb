@@ -17,7 +17,7 @@
         {% for img in img_list %}
         <tr>
             <td>{{ paging.offset + loop.index0 + 1 }}</td>
-            <td>{{ img.path }}</td>
+            <td>{{ img.name }}</td>
             <td><img src="{{ url_for('static', filename=img.path) }}"></td>
             <td>
                 {% for crop in crop_imgs[img.path] %}

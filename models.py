@@ -59,7 +59,7 @@ def get_images(page=1):
     crop_imgs = {}
     for data in data_list:
         path = data['path']                    # results/20210425214433.jpg
-        img_list.append({'path':path})
+        img_list.append({'path':path, 'name':path.split('/')[1]})
         path_folder = path.split('.')[0]       # results/20210425214433
         static_path = args.static_folder + path_folder  # static/results/20210425214433
         if os.path.isdir(static_path):
@@ -67,6 +67,8 @@ def get_images(page=1):
             crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
             for crop in crop_list:
                 width = int(crop['width'] / crop['height'] * args.crop_height)
+                if width > args.crop_width:
+                    width = args.crop_width
                 crop_imgs[path].append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width':width,
                                         'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
     return paging, img_list, crop_imgs
