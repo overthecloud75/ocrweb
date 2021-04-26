@@ -15,7 +15,6 @@ def warpCoord(Minv, pt):
     return np.array([out[0]/out[2], out[1]/out[2]])
 """ end of auxilary functions """
 
-
 def getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text):
     # prepare data
     linkmap = linkmap.copy()

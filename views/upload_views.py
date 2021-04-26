@@ -1,17 +1,19 @@
 import os
-from flask import Flask, request, redirect, url_for
-from flask import Blueprint, request, render_template, url_for, current_app, session, g, flash, jsonify
+from flask import Blueprint, request, render_template, url_for
 from main import args
 from werkzeug.utils import redirect
 import datetime
 
 import torch
 import torch.backends.cudnn as cudnn
-import cv2
-from craft import CRAFT
-import pipeline, utils, imgproc
-from models import update_image
 
+from recognition import imgproc, pipeline
+from recognition.craft import CRAFT
+from recognition.model import Model
+from recognition.utils import CTCLabelConverter, AttnLabelConverter
+
+# device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # blueprint
 bp = Blueprint('upload', __name__, url_prefix='/upload')
@@ -51,22 +53,27 @@ def execute_net():
         args.poly = True
     return net, refine_net
 
+def excute_model():
+    """Open csv file wherein you are going to write the Predicted Words"""
+    if 'CTC' in args.Prediction:
+        converter = CTCLabelConverter(args.character)
+    else:
+        converter = AttnLabelConverter(args.character)
+    args.num_class = len(converter.character)
+
+    if args.rgb:
+        args.input_channel = 3
+    model = Model(args)
+    model = torch.nn.DataParallel(model).to(device)
+
+    # load model
+    print('Loading pretrained model from %s' % args.saved_model)
+    model.load_state_dict(torch.load(args.saved_model, map_location=device))
+    return model, converter
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def execute_ocr(filename, file_path):
-    image = imgproc.loadImage(file_path)
-    bboxes, polys, det_scores = \
-        pipeline.test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly,
-                          args, refine_net)
-    bbox_scores = []
-    for box_num in range(len(bboxes)):
-        bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
-    box_filename, height, width = utils.saveResult(file_path, image[:, :, ::-1], polys, adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
-    update_image({'path':args.result_folder + box_filename, 'height':height, 'width':width})
-    image = cv2.imread(file_path)
-    pipeline.generate_words(filename, bbox_scores, image, base_dir=args.static_folder, dirname=args.result_folder)
 
 @bp.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -77,8 +84,9 @@ def upload_file():
             filename = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S')) + '.' + ext
             file_path = os.path.join(args.upload_folder, filename)
             file.save(file_path)
-            execute_ocr(filename, file_path)
+            pipeline.execute_ocr(filename, file_path, net=net, refine_net=refine_net, model=model, converter=converter)
             return redirect(url_for('main.train', filename=filename))
     return render_template('upload.html')
 
 net, refine_net = execute_net()
+model, converter = excute_model()

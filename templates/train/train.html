@@ -8,7 +8,10 @@
             <th>번호</th>
             <th>파일명</th>
             <th>그림</th>
-            <th>detail</th>
+            <th>순서</th>
+            <th>crop image</th>
+            <th>prediction</th>
+            <th>confidence</th>
         </tr>
         </thead>
         {% for img in img_list %}
@@ -18,7 +21,22 @@
             <td><img src="{{ url_for('static', filename=img.path) }}"></td>
             <td>
                 {% for crop in crop_imgs[img.path] %}
+                <div>{{ crop.order }}</div>
+                {% endfor %}
+            </td>
+            <td>
+                {% for crop in crop_imgs[img.path] %}
                 <div><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></div>
+                {% endfor %}
+            </td>
+            <td>
+                {% for crop in crop_imgs[img.path] %}
+                <div>{{ crop.pred }}</div>
+                {% endfor %}
+            </td>
+            <td>
+                {% for crop in crop_imgs[img.path] %}
+                <div>{{ crop.confidence }}</div>
                 {% endfor %}
             </td>
         </tr>
