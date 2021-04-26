@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-3">
+    {% if img_list %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>파일명</th>
+            <th>그림</th>
+            <th>detail</th>
+        </tr>
+        </thead>
+        {% for img in img_list %}
+        <tr>
+            <td>{{ paging.offset + loop.index0 + 1 }}</td>
+            <td>{{ img.path }}</td>
+            <td><img src="{{ url_for('static', filename=img.path) }}"></td>
+            <td>
+                {% for crop in crop_imgs[img.path] %}
+                <div><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></div>
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>그림이 없습니다.</p>
+    {% endif %}
+</div>
+{% include 'paging.html' %}
+{% endblock %}

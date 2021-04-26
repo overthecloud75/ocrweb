@@ -1,0 +1,45 @@
+<!-- 페이징처리 시작 -->
+<ul class="pagination justify-content-center">
+    <!-- 이전페이지 -->
+    {% if paging.has_prev %}
+    <li class="page-item">
+        <a class="page-link" href="?page=1&name={{ name or '' }}&start={{ start or '' }}&end={{ end or '' }}">처음</a>
+    </li>
+    <li class="page-item">
+        <a class="page-link" href="?page={{ paging.prev_num }}&name={{ name or '' }}&start={{ start or '' }}&end={{ end or '' }}">이전</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+        <a class="page-link" tabindex="-1" aria-disabled="true" href="#">처음</a>
+    <li class="page-item disabled">
+        <a class="page-link" tabindex="-1" aria-disabled="true" href="#">이전</a>
+    </li>
+    {% endif %}
+    {% for page_num in paging.pages %}
+        {% if page_num %}
+            {% if page_num != paging.page %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_num }}&name={{ name or '' }}&start={{ start or '' }}&end={{ end or '' }}">{{ page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item active" aria-current="page">
+                <a class="page-link" href="#">{{ page_num }}</a>
+            </li>
+            {% endif %}
+        {% else %}
+            <li class="disabled">
+                <a class="page-link" href="#">...</a>
+            </li>
+        {% endif %}
+    {% endfor %}
+    <!-- 다음페이지 -->
+    {% if paging.has_next %}
+    <li class="page-item">
+        <a class="page-link" href="?page={{ paging.next_num }}&name={{ name or '' }}&start={{ start or '' }}&end={{ end or '' }}">다음</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled">
+        <a class="page-link" tabindex="-1" aria-disabled="true" href="#">다음</a>
+    </li>
+    {% endif %}
+</ul>
