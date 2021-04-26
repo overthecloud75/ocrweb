@@ -1,12 +1,14 @@
 import os
-from flask import Blueprint, request, render_template, url_for
-from main import args
-from werkzeug.utils import redirect
+import time
 import datetime
+
+from flask import Blueprint, request, render_template, url_for
+from werkzeug.utils import redirect
 
 import torch
 import torch.backends.cudnn as cudnn
 
+from main import args
 from recognition import pipeline
 from recognition.craft import CRAFT
 from recognition.model import Model

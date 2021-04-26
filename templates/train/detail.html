@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-3">
+    <h1>{{ filename }}</h1>
+    {% if crop_imgs %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>번호</th>
+            <th>crop image</th>
+            <th>prediction</th>
+            <th>confidence</th>
+        </tr>
+        </thead>
+        {% for crop in crop_imgs %}
+        <tr>
+            <td>{{ crop.order }}</td>
+            <td><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></td>
+            <td>{{ crop.pred }}</td>
+            <td>{{ crop.confidence }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>그림이 없습니다.</p>
+    {% endif %}
+</div>
+{% endblock %}
