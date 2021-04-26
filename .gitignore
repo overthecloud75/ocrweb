@@ -3,3 +3,4 @@ deep-text-recognition-benchmark/
 static/results/
 upload/
 weights/
+request_test.py

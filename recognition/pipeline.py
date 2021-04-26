@@ -95,7 +95,6 @@ def evaluate(model, converter, data):
         collate_fn=AlignCollate_demo, pin_memory=True)
 
     # predict
-    confidence = []
     prediction = []
     model.eval()
     with torch.no_grad():
@@ -132,11 +131,10 @@ def evaluate(model, converter, data):
 
                 # calculate confidence score (= multiply of pred_max_prob)
                 confidence_score = pred_max_prob.cumprod(dim=0)[-1]
-                confidence.append(round(confidence_score.item(), 3))
                 # tensor float로 변환
                 # https://stackoverflow.com/questions/57727372/how-do-i-get-the-value-of-a-tensor-in-pytorch
-                prediction.append(pred)
-    return confidence, prediction
+                prediction.append({'pred':pred, 'confidence':round(confidence_score.item(), 3)})
+    return prediction
 
 def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, converter=None):
     image = imgproc.loadImage(file_path)
@@ -184,12 +182,14 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     data = RawDataset(crop_image_list, opt=args)  # use RawDataset
 
     # prediction
-    confidence, prediction = evaluate(model, converter, data)
+    prediction = evaluate(model, converter, data)
     for idx, data in enumerate(request_data_list):
         request_data = data.copy()
-        request_data['pred'] = prediction[idx]
-        request_data['confidence'] = confidence[idx]
+        request_data['pred'] = prediction[idx]['pred']
+        request_data['confidence'] = prediction[idx]['confidence']
         update_crop_images(request_data)
+
+    return prediction
 
 
 

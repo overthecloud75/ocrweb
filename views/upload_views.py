@@ -2,7 +2,7 @@ import os
 import time
 import datetime
 
-from flask import Blueprint, request, render_template, url_for
+from flask import Blueprint, request, render_template, url_for, jsonify 
 from werkzeug.utils import redirect
 
 import torch
@@ -77,18 +77,29 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def ocr(file):
+    prediction = []
+    if file and allowed_file(file.filename):
+        ext = file.filename.split('.')[-1]
+        filename = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S')) + '.' + ext
+        file_path = os.path.join(args.upload_folder, filename)
+        file.save(file_path)
+        prediction = pipeline.execute_ocr(filename, file_path, net=net, refine_net=refine_net, model=model, converter=converter)
+    return prediction
+
 @bp.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
         file = request.files['file']
-        if file and allowed_file(file.filename):
-            ext = file.filename.split('.')[-1]
-            filename = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S')) + '.' + ext
-            file_path = os.path.join(args.upload_folder, filename)
-            file.save(file_path)
-            pipeline.execute_ocr(filename, file_path, net=net, refine_net=refine_net, model=model, converter=converter)
-            return redirect(url_for('main.train', filename=filename))
+        ocr(file)
+        return redirect(url_for('main.train'))
     return render_template('upload.html')
+
+@bp.route('/predict', methods=['POST'])
+def predict():
+    file = request.files['file']
+    prediction = ocr(file)
+    return jsonify(prediction)
 
 net, refine_net = execute_net()
 model, converter = excute_model()
