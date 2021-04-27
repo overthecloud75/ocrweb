@@ -22,6 +22,7 @@ parser.add_argument('--upload_folder', default='upload/', type=str, help='folder
 parser.add_argument('--result_width', default=450, type=int, help='image size of result image')
 parser.add_argument('--crop_height', default=15, type=int, help='web image size of crop image')
 parser.add_argument('--crop_width', default=120, type=int, help='web image size of crop image')
+parser.add_argument('--overlap', default=0.2, type=float, help='to sort the crop image')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 

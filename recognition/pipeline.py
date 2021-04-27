@@ -66,6 +66,49 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, a
 
     return boxes, polys, det_scores
 
+def crop_image_sort(bbox_scores, overlap=0.2):
+    num_bboxes = len(bbox_scores)
+    sort_list = []
+    for idx in range(num_bboxes):
+        local_id = None
+        local_min = None
+        for idy in range(num_bboxes):
+            bbox_coords = bbox_scores[idy][1]
+            bbox_coords = bbox_coords.astype(np.int64)
+
+            if idy not in sort_list:
+                if local_min is None:
+                    local_id = idy
+                    local_min = bbox_coords
+                    continue
+                else:
+                    local_height = local_min[2][1] - local_min[1][1]
+                    diff = np.min(local_min, axis=0) - np.min(bbox_coords, axis=0)
+                    if diff[0] <= 0 and diff[1] <= 0:
+                        pass
+                    elif diff[0] <= 0 and diff[1] > 0:
+                        if diff[1] < local_height * overlap:
+                            pass
+                        else:
+                            local_id = idy
+                            local_min = bbox_coords
+                    elif diff[0] > 0 and diff[1] <= 0:
+                        if abs(diff[1]) < local_height * overlap:
+                            local_id = idy
+                            local_min = bbox_coords
+                        else:
+                            pass
+                    else:
+                        local_min = bbox_coords
+        sort_list.append(local_id)
+
+    bbox_coords_list = []
+    for idx in sort_list:
+        bbox_coords = bbox_scores[idx][1]
+        bbox_coords = bbox_coords.astype(np.int64)
+        bbox_coords_list.append(bbox_coords)
+    return bbox_coords_list
+
 def crop(pts, image):
     """
     Takes inputs as 8 points
@@ -144,12 +187,15 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     bbox_scores = []
     for box_num in range(len(bboxes)):
         bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
-    box_filename, height, width = utils.saveResult(file_path, image[:, :, ::-1], polys, adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
+    box_filename, height, width = utils.saveResult(file_path, image[:, :, ::-1], polys,
+                                                   adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
     update_image({'path':args.result_folder + box_filename, 'height':height, 'width':width})
     image = cv2.imread(file_path)
 
-    # crop images
+    # crop image 정렬
+    bbox_coords_list = crop_image_sort(bbox_scores, overlap=args.overlap)
 
+    # crop images
     base_dir = args.static_folder
     dirname = args.result_folder
 
@@ -158,24 +204,19 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     if os.path.isdir(crop_dir) == False:
         os.makedirs(crop_dir)
 
-    num_bboxes = len(bbox_scores)
-
     crop_image_list = []
     request_data_list = []
 
-    for num in range(num_bboxes):
-        bbox_coords = bbox_scores[num][1]
-        bbox_coords = bbox_coords.astype(np.int64)
+    for idx, bbox_coords in enumerate(bbox_coords_list):
         if np.all(bbox_coords) > 0:
             word = crop(bbox_coords, image)
-
             try:
                 height, width, channel = word.shape
-                img_name = str(num) + '.jpg'
+                img_name = str(idx) + '.jpg'
                 static_dir = crop_dir + '/' + img_name # static/results/20210426101605/0.jpg
                 cv2.imwrite(static_dir, word)
                 crop_image_list.append(static_dir)
-                request_data_list.append({'path_folder':dirname + filename.split('.')[0], 'order':num, 'name':img_name, 'height':height, 'width':width})
+                request_data_list.append({'path_folder':dirname + filename.split('.')[0], 'order':idx, 'name':img_name, 'height':height, 'width':width})
             except:
                 continue
 
