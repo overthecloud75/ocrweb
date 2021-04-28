@@ -25,18 +25,18 @@ def train():
 
 @bp.route('/detail/', methods=('GET', 'POST'))
 def detail():
+
     form = SupervisingForm()
     if request.method == 'POST' and form.validate_on_submit():
         filename = form.filename.data
         order = form.order.data
         target = form.target.data
         request_data = {'path_folder':args.result_folder + filename.split('.')[0], 'order':int(order), 'target':target}
-        print(request_data)
-        #update_crop_image(request_data)
+        update_crop_image(request_data)
 
+    page = int(request.args.get('page', 1))
     filename = request.args.get('filename', None)
-    crops = get_detail(filename=filename)
-    print(crops)
+    paging, crop_imgs = get_detail(page=page, filename=filename)
     return render_template('train/detail.html', **locals())
 
 

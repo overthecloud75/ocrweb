@@ -2,34 +2,37 @@
 {% block content %}
 <div class="container my-3">
     <h1>{{ filename }}</h1>
-    {% if crops %}
+    {% if crop_imgs %}
     <table class="table">
         <thead>
         <tr>
             <th>number</th>
             <th>crop image</th>
+            <th>confidence</th>
             <th>prediction</th>
             <th>target</th>
             <th>submit</th>
         </tr>
         </thead>
-        {% for imgs in crops %}
+        {% for crop in crop_imgs %}
         <tr>
-            <td>
-            </td>
-            <td>
-                {% for crop in imgs.img %}
-                <div><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></div>
-                {% endfor %}
-            </td>
-            <td>{{ imgs.preds }} </td>
+            <td>{{ crop.order }}</td>
+            <td><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></td>
+            <td>{{ crop.confidence }}</td>
+            <td>{{ crop.pred }} </td>
+            {% if crop.target %}
+            <td>{{ crop.target }} </td>
+            <td></td>
+            {% else %}
             <form method="post" class="my-3">
                 {{ form.csrf_token }}
                 {% include "form_errors.html" %}
                 <input type="hidden" name="filename" value="{{ filename }}">
-                <td><input type="text" class="form-control" name="target" value="{{ imgs.targets }}" height="100"></td>
+                <input type="hidden" name="order" value="{{ crop.order }}">
+                <td><input type="text" class="form-control" name="target" value="{{ crop.pred }}"></td>
                 <td><input type="submit" class="btn btn-primary"></td>
             </form>
+            {% endif %}
         </tr>
         {% endfor %}
     </table>
@@ -37,4 +40,5 @@
     <p>그림이 없습니다.</p>
     {% endif %}
 </div>
+{% include 'paging.html' %}
 {% endblock %}

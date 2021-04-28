@@ -56,10 +56,12 @@ def get_images(page=1):
 
     data_list = collection.find(sort=[('path', -1)])
     count = data_list.count()
-    data_list = data_list.limit(per_page).skip(offset)
     paging = paginate(page, per_page, count)
+    data_list = data_list.limit(per_page).skip(offset)
+
     collection = db['crop_images']
     img_list = []
+
     crop_imgs = {}
     for data in data_list:
         path = data['path'] # results/20210425214433.jpg
@@ -78,33 +80,26 @@ def get_images(page=1):
                                         'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
     return paging, img_list, crop_imgs
 
-def get_detail(filename=None):
+def get_detail(page=1, filename=None):
     collection = db['crop_images']
+
+    per_page = 15
+    offset = (page - 1) * per_page
+
     path_folder = args.result_folder + filename.split('.')[0]
     crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
-    imgs = []
-    preds = []
-    targets = []
-    for idx, crop in enumerate(crop_list):
-        reg = idx // args.view_count
-        if len(imgs) == reg:
-            imgs.append([])
-            preds.append(' / ')
-            targets.append(' / ')
+    count = crop_list.count()
+    paging = paginate(page, per_page, count)
+    crop_list = crop_list.limit(per_page).skip(offset)
+
+    crop_imgs = []
+    for crop in crop_list:
         width = int(crop['width'] / crop['height'] * args.crop_height)
         if 'target' in crop:
-            imgs[-1].append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
+            crop_imgs.append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
                               'order':crop['order'], 'pred': crop['pred'], 'confidence': crop['confidence'], 'target':crop['target']})
         else:
-            imgs[-1].append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
+            crop_imgs.append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
                                    'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
-        preds[-1] = preds[-1] + crop['pred'] + ' / '
-        if 'target' in crop:
-            targets[-1] = targets[-1] + crop['target'] + ' / '
-        else:
-            targets[-1] = targets[-1] + ' / '
-    crops = []
-    for idx, img in enumerate(imgs):
-        crops.append({'img':img, 'preds':preds[idx], 'targets':targets[idx]})
-    return crops
+    return paging, crop_imgs
 
