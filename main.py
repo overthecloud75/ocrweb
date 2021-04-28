@@ -16,12 +16,10 @@ parser.add_argument('--canvas_size', default=1280, type=int, help='image size fo
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--show_time', default=False, action='store_true', help='show processing time')
+parser.add_argument('--upload_folder', default='upload/', type=str, help='folder path to upload images')
 parser.add_argument('--static_folder', default='static/', type=str, help='folder path to web images')
 parser.add_argument('--result_folder', default='results/', type=str, help='folder path to input images')
-parser.add_argument('--upload_folder', default='upload/', type=str, help='folder path to upload images')
 parser.add_argument('--result_width', default=450, type=int, help='image size of result image')
-parser.add_argument('--crop_height', default=15, type=int, help='web image size of crop image')
-parser.add_argument('--crop_width', default=120, type=int, help='web image size of crop image')
 parser.add_argument('--overlap', default=0.2, type=float, help='to sort the crop image')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
@@ -52,6 +50,11 @@ parser.add_argument('--input_channel', type=int, default=1, help='the number of 
 parser.add_argument('--output_channel', type=int, default=512,
                     help='the number of output channel of Feature extractor')
 parser.add_argument('--hidden_size', type=int, default=256, help='the size of the LSTM hidden state')
+
+# web image
+parser.add_argument('--crop_height', default=15, type=int, help='web image size of crop image')
+parser.add_argument('--crop_width', default=120, type=int, help='web image size of crop image')
+parser.add_argument('--view_count', default=10, type=int, help='detial view count')
 
 args = parser.parse_args()
 
@@ -88,4 +91,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='127.0.0.1', debug=True)
+    app.run(host='0.0.0.0', debug=True)

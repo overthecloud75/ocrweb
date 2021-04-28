@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 from collections import OrderedDict
-from models import update_crop_images
+from models import update_crop_image
 from main import args
 import utils
 from models import update_image
@@ -173,10 +173,14 @@ def evaluate(model, converter, data):
                     pred_max_prob = pred_max_prob[:pred_EOS]
 
                 # calculate confidence score (= multiply of pred_max_prob)
-                confidence_score = pred_max_prob.cumprod(dim=0)[-1]
+                try:
+                    confidence_score = pred_max_prob.cumprod(dim=0)[-1]
                 # tensor float로 변환
                 # https://stackoverflow.com/questions/57727372/how-do-i-get-the-value-of-a-tensor-in-pytorch
-                prediction.append({'pred':pred, 'confidence':round(confidence_score.item(), 3)})
+                    prediction.append({'pred':pred, 'confidence':round(confidence_score.item(), 3)})
+                except Exception as e:
+                    prediction.append({'pred':'', 'confidence':0.0})
+                    print('pred_max', e, pred_max_prob.cumprod(dim=0))
     return prediction
 
 def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, converter=None):
@@ -228,8 +232,7 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         request_data = data.copy()
         request_data['pred'] = prediction[idx]['pred']
         request_data['confidence'] = prediction[idx]['confidence']
-        update_crop_images(request_data)
-
+        update_crop_image(request_data)
     return prediction
 
 

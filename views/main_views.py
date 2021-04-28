@@ -5,7 +5,9 @@ from flask import Blueprint, request, render_template, url_for, current_app, ses
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import redirect
 
-from models import get_images, get_detail
+from main import args
+from models import update_crop_image, get_images, get_detail
+from form import SupervisingForm
 
 # blueprint
 bp = Blueprint('main', __name__, url_prefix='/')
@@ -21,10 +23,20 @@ def train():
     paging, img_list, crop_imgs = get_images(page=page)
     return render_template('train/train.html', **locals())
 
-@bp.route('/detail/')
+@bp.route('/detail/', methods=('GET', 'POST'))
 def detail():
+    form = SupervisingForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        filename = form.filename.data
+        order = form.order.data
+        target = form.target.data
+        request_data = {'path_folder':args.result_folder + filename.split('.')[0], 'order':int(order), 'target':target}
+        print(request_data)
+        #update_crop_image(request_data)
+
     filename = request.args.get('filename', None)
-    crop_imgs = get_detail(filename=filename)
+    crops = get_detail(filename=filename)
+    print(crops)
     return render_template('train/detail.html', **locals())
 
 

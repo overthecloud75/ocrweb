@@ -44,9 +44,9 @@ def update_image(request_data):
     collection = db['images']
     collection.insert_one(request_data)
 
-def update_crop_images(request_data):
+def update_crop_image(request_data):
     collection = db['crop_images']
-    collection.insert_one(request_data)
+    collection.update_one({'path_folder':request_data['path_folder'], 'order':request_data['order']}, {'$set':request_data}, upsert=True)
 
 def get_images(page=1):
     collection = db['images']
@@ -82,10 +82,29 @@ def get_detail(filename=None):
     collection = db['crop_images']
     path_folder = args.result_folder + filename.split('.')[0]
     crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
-    crop_imgs = []
-    for crop in crop_list:
+    imgs = []
+    preds = []
+    targets = []
+    for idx, crop in enumerate(crop_list):
+        reg = idx // args.view_count
+        if len(imgs) == reg:
+            imgs.append([])
+            preds.append(' / ')
+            targets.append(' / ')
         width = int(crop['width'] / crop['height'] * args.crop_height)
-        crop_imgs.append({'path': path_folder + '/' + crop['name'], 'height': args.crop_height, 'width': width,
-                                'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
-    return crop_imgs
+        if 'target' in crop:
+            imgs[-1].append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
+                              'order':crop['order'], 'pred': crop['pred'], 'confidence': crop['confidence'], 'target':crop['target']})
+        else:
+            imgs[-1].append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
+                                   'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
+        preds[-1] = preds[-1] + crop['pred'] + ' / '
+        if 'target' in crop:
+            targets[-1] = targets[-1] + crop['target'] + ' / '
+        else:
+            targets[-1] = targets[-1] + ' / '
+    crops = []
+    for idx, img in enumerate(imgs):
+        crops.append({'img':img, 'preds':preds[idx], 'targets':targets[idx]})
+    return crops
 
