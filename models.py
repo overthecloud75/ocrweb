@@ -51,7 +51,7 @@ def update_crop_image(request_data):
 def get_images(page=1):
     collection = db['images']
 
-    per_page = page_default['per_page']
+    per_page = 5
     offset = (page - 1) * per_page
 
     data_list = collection.find(sort=[('path', -1)])
@@ -83,7 +83,7 @@ def get_images(page=1):
 def get_detail(page=1, filename=None):
     collection = db['crop_images']
 
-    per_page = 15
+    per_page = page_default['per_page']
     offset = (page - 1) * per_page
 
     path_folder = args.result_folder + filename.split('.')[0]
@@ -102,4 +102,40 @@ def get_detail(page=1, filename=None):
             crop_imgs.append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
                                    'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
     return paging, crop_imgs
+
+def get_summary(page=1):
+    collection = db['images']
+
+    per_page = page_default['per_page']
+    offset = (page - 1) * per_page
+
+    data_list = collection.find(sort=[('path', -1)])
+    count = data_list.count()
+    paging = paginate(page, per_page, count)
+    data_list = data_list.limit(per_page).skip(offset)
+
+    collection = db['crop_images']
+    img_list = []
+    total = {'count':0, 'target':0, 'learning_rate':0}
+
+    for data in data_list:
+        path = data['path'] # results/20210425214433.jpg
+        height = int(data['height'] / data['width'] * args.result_width)
+        img_list.append({'path':path, 'name':path.split('/')[1], 'height':height, 'width':args.result_width})
+        path_folder = path.split('.')[0]       # results/20210425214433
+        static_path = args.static_folder + path_folder  # static/results/20210425214433
+        learning_rate = 0
+        if os.path.isdir(static_path):
+            crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
+            crop_count = crop_list.count()
+            total['count'] = total['count'] + crop_count
+            crop_list = collection.find({'path_folder':path_folder , 'target':{'$exists':'true'}}, sort=[('order', 1)])
+            target_count = crop_list.count()
+            total['target'] = total['target'] + target_count
+            if crop_count != 0:
+                learning_rate = round(target_count / crop_count * 100, 1)
+        img_list[-1]['learning_rate'] = learning_rate
+    if total['count'] != 0:
+        total['learning_rate'] = round(total['target'] / total['count'] * 100, 1)
+    return paging, img_list, total
 

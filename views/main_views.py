@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import redirect
 
 from main import args
-from models import update_crop_image, get_images, get_detail
+from models import update_crop_image, get_images, get_detail, get_summary
 from form import SupervisingForm
 
 # blueprint
@@ -25,7 +25,6 @@ def train():
 
 @bp.route('/detail/', methods=('GET', 'POST'))
 def detail():
-
     form = SupervisingForm()
     if request.method == 'POST' and form.validate_on_submit():
         filename = form.filename.data
@@ -38,6 +37,15 @@ def detail():
     filename = request.args.get('filename', None)
     paging, crop_imgs = get_detail(page=page, filename=filename)
     return render_template('train/detail.html', **locals())
+
+@bp.route('/summary/')
+def summary():
+    page = int(request.args.get('page', 1))
+    # filename = request.args.get('filename', None)
+    paging, img_list, total = get_summary(page=page)
+    return render_template('train/summary.html', **locals())
+
+
 
 
 

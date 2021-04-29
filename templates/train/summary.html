@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-3">
+    <h2>count : {{ total.count }}, target : {{ total.target }}, learning_rate : {{ total.learning_rate }}(%)</h2>
+    {% if img_list %}
+    <table class="table">
+        <thead>
+        <tr>
+            <th>number</th>
+            <th>filename</th>
+            <th>learning_rate(%)</th>
+        </tr>
+        </thead>
+        {% for img in img_list %}
+        <tr>
+            <td>{{ paging.offset + loop.index0 + 1 }}</td>
+            <td><a href="{{ url_for('main.detail', filename=img.name) }}">{{ img.name }}</a></td>
+            <td>{{ img.learning_rate }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>그림이 없습니다.</p>
+    {% endif %}
+</div>
+{% include 'paging.html' %}
+{% endblock %}
