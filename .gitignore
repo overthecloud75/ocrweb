@@ -1,6 +1,8 @@
 data/
-deep-text-recognition-benchmark/
+log/
+saved_models/
 static/results/
 upload/
 weights/
 request_test.py
+test.py

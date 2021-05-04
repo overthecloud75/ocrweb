@@ -16,6 +16,36 @@ import logging
 
 logger = logging.getLogger()
 
+class CustomDataset(Dataset):
+  def __init__(self, img_list, opt):
+    self.labels = []
+    self.imgs = []
+    try:
+        if opt.rgb:
+            for data in img_list:
+                print(data)
+                img = Image.open(data['path']).convert('RGB')  # for color image
+                self.imgs.append(img)
+                self.labels.append(data['label'])
+        else:
+            for data in img_list:
+                img = Image.open(data['path']).convert('L')
+                self.imgs.append(img)
+                self.labels.append(data['label'])
+    except IOError:
+        print('IEError')
+        pass
+
+  # 총 데이터의 개수를 리턴
+  def __len__(self):
+    return len(self.labels)
+
+  # 인덱스를 입력받아 그에 맵핑되는 입출력 데이터를 파이토치의 Tensor 형태로 리턴
+  def __getitem__(self, idx):
+    img = self.imgs[idx]
+    label = self.labels[idx]
+    return (img, label)
+
 class Batch_Balanced_Dataset(object):
 
     def __init__(self, opt):

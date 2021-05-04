@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import redirect
 
 from main import args
-from models import update_crop_image, get_images, get_detail, get_summary
+from models import update_crop_image, get_images, get_detail, get_summary, get_graph
 from form import SupervisingForm
 
 # blueprint
@@ -44,6 +44,11 @@ def summary():
     # filename = request.args.get('filename', None)
     paging, img_list, total = get_summary(page=page)
     return render_template('train/summary.html', **locals())
+
+@bp.route('/graph/')
+def graph():
+    xy_list = get_graph()
+    return render_template('train/graph.html', **locals())
 
 
 

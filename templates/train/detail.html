@@ -9,6 +9,7 @@
             <th>number</th>
             <th>crop image</th>
             <th>confidence</th>
+            <th>edit distance</th>
             <th>prediction</th>
             <th>target</th>
             <th>submit</th>
@@ -19,6 +20,7 @@
             <td>{{ crop.order }}</td>
             <td><img src="{{ url_for('static', filename=crop.path) }}" height="{{ crop.height }}" width="{{ crop.width }}"></td>
             <td>{{ crop.confidence }}</td>
+            <td>{{ crop.ed }} </td>
             <td>{{ crop.pred }} </td>
             {% if crop.target %}
             <td>{{ crop.target }} </td>

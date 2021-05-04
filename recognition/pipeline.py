@@ -1,16 +1,16 @@
 import os
+import cv2
+import numpy as np
+import re
+from collections import OrderedDict
+
 import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-import cv2
-import numpy as np
-
-from collections import OrderedDict
-from models import update_crop_image
 from main import args
 import utils
-from models import update_image
+from models import update_image, update_crop_image
 
 from recognition import imgproc, craft_utils
 from recognition.dataset import RawDataset, AlignCollate
@@ -170,6 +170,8 @@ def evaluate(model, converter, data):
                 if 'Attn' in args.Prediction:
                     pred_EOS = pred.find('[s]')
                     pred = pred[:pred_EOS]  # prune after "end of sentence" token ([s])
+                    if not args.unknown:
+                        pred = re.sub('[\[UNK\]]', '', pred)
                     pred_max_prob = pred_max_prob[:pred_EOS]
 
                 # calculate confidence score (= multiply of pred_max_prob)
@@ -193,7 +195,7 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
     box_filename, height, width = utils.saveResult(file_path, image[:, :, ::-1], polys,
                                                    adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
-    update_image({'path':args.result_folder + box_filename, 'height':height, 'width':width})
+    update_image({'path':args.result_folder + box_filename, 'height':height, 'width':width, 'model':args.saved_model})
     image = cv2.imread(file_path)
 
     # crop image 정렬

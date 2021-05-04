@@ -57,7 +57,7 @@ class AttnLabelConverter(object):
     def __init__(self, character):
         # character (str): set of the possible characters.
         # [GO] for the start token of the attention decoder. [s] for end-of-sentence token.
-        list_token = ['[GO]', '[s]']  # ['[s]','[UNK]','[PAD]','[GO]']
+        list_token = ['[GO]', '[s]', '[UNK]']  # ['[s]','[UNK]','[PAD]','[GO]']
         list_character = list(character)
         self.character = list_token + list_character
 
@@ -83,10 +83,10 @@ class AttnLabelConverter(object):
         # additional +1 for [GO] at first step. batch_text is padded with [GO] token after [s] token.
         batch_text = torch.LongTensor(len(text), batch_max_length + 1).fill_(0)
         for i, t in enumerate(text):
-            text = list(t)
-            text.append('[s]')
-            text = [self.dict[char] for char in text]
-            batch_text[i][1:1 + len(text)] = torch.LongTensor(text)  # batch_text[:, 0] = [GO] token
+            t_list = list(t)
+            t_list.append('[s]')
+            t_list = [self.dict[char] if char in self.dict else self.dict['[UNK]'] for char in t_list]
+            batch_text[i][1:1 + len(t_list)] = torch.LongTensor(t_list)  # batch_text[:, 0] = [GO] token
         return (batch_text.to(device), torch.IntTensor(length).to(device))
 
     def decode(self, text_index, length):

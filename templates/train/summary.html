@@ -8,14 +8,24 @@
         <tr>
             <th>number</th>
             <th>filename</th>
+            <th>count</th>
+            <th>target</th>
             <th>learning_rate(%)</th>
+            <th>model</th>
         </tr>
         </thead>
         {% for img in img_list %}
         <tr>
             <td>{{ paging.offset + loop.index0 + 1 }}</td>
             <td><a href="{{ url_for('main.detail', filename=img.name) }}">{{ img.name }}</a></td>
+            <td>{{ img.count }}</td>
+            <td>{{ img.target }}</td>
             <td>{{ img.learning_rate }}</td>
+            {% if img.model %}
+            <td>{{ img.model }}</td>
+            {% else %}
+            <td></td>
+            {% endif %}
         </tr>
         {% endfor %}
     </table>

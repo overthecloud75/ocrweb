@@ -66,11 +66,13 @@ def excute_model():
     if args.rgb:
         args.input_channel = 3
     model = Model(args)
-    model = torch.nn.DataParallel(model).to(device)
+    model.to(device)
+    #model = torch.nn.DataParallel(model).to(device)
 
     # load model
     print('Loading pretrained model from %s' % args.saved_model)
     model.load_state_dict(torch.load(args.saved_model, map_location=device))
+
     return model, converter
 
 def allowed_file(filename):

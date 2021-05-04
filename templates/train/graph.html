@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container my-3">
+    <div style="width:80%;margin-left:auto;margin-right: auto">
+        <canvas id="canvas"></canvas>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+
+<!-- https://www.chartjs.org/ -->
+<!-- https://towardsdatascience.com/flask-and-chart-js-tutorial-i-d33e05fba845 -->
+
+<script>
+new Chart(document.getElementById("canvas"), {
+    type: 'scatter',
+    data: {
+        datasets: [{
+            data: [
+                {% for xy in xy_list %}
+                {x: {{ xy.confidence }}, y: {{ xy.ed }} },
+                {% endfor %}
+                ],
+            backgroundColor: 'rgb(255, 99, 132)'
+            }]
+    },
+    options: {
+        legend: {
+            position: 'right'
+            },
+        scales: {
+            xAxes: [{
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: 'confidence'
+                }
+            }],
+            yAxes: [{
+                display: true,
+                ticks: {
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'editdistance'
+                }
+            }]
+        }
+    }
+});
+
+</script>
+{% endblock %}

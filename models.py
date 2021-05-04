@@ -2,6 +2,7 @@ import os
 from werkzeug.security import check_password_hash
 
 import datetime
+from nltk.metrics.distance import edit_distance
 
 from utils import paginate
 from main import args
@@ -46,6 +47,18 @@ def update_image(request_data):
 
 def update_crop_image(request_data):
     collection = db['crop_images']
+    if 'target' in request_data:
+        data = collection.find_one({'path_folder':request_data['path_folder'], 'order':request_data['order']})
+        # ICDAR2019 Normalized Edit Distance
+        pred = data['pred']
+        gt = request_data['target']
+        if len(gt) == 0 or len(pred) == 0:
+            norm_ED = 0
+        elif len(gt) > len(pred):
+            norm_ED = 1 - edit_distance(pred, gt) / len(gt)
+        else:
+            norm_ED = 1 - edit_distance(pred, gt) / len(pred)
+        request_data['ed'] = round(norm_ED, 3)
     collection.update_one({'path_folder':request_data['path_folder'], 'order':request_data['order']}, {'$set':request_data}, upsert=True)
 
 def get_images(page=1):
@@ -95,16 +108,17 @@ def get_detail(page=1, filename=None):
     crop_imgs = []
     for crop in crop_list:
         width = int(crop['width'] / crop['height'] * args.crop_height)
+        crop_imgs.append({'path': path_folder + '/' + crop['name'], 'height': args.crop_height, 'width': width,
+                          'order': crop['order'], 'pred': crop['pred'], 'confidence': crop['confidence']})
         if 'target' in crop:
-            crop_imgs.append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
-                              'order':crop['order'], 'pred': crop['pred'], 'confidence': crop['confidence'], 'target':crop['target']})
-        else:
-            crop_imgs.append({'path':path_folder + '/' + crop['name'], 'height':args.crop_height, 'width': width,
-                                   'order':crop['order'], 'pred':crop['pred'], 'confidence':crop['confidence']})
+            crop_imgs[-1]['target'] = crop['target']
+        if 'ed' in crop:
+            crop_imgs[-1]['ed'] = crop['ed']
     return paging, crop_imgs
 
 def get_summary(page=1):
     collection = db['images']
+    total = {}
 
     per_page = page_default['per_page']
     offset = (page - 1) * per_page
@@ -115,27 +129,55 @@ def get_summary(page=1):
     data_list = data_list.limit(per_page).skip(offset)
 
     collection = db['crop_images']
-    img_list = []
-    total = {'count':0, 'target':0, 'learning_rate':0}
+    crop_count = collection.find().count()
+    target_count = collection.find({'target':{'$exists':'true'}}).count()
+    total['count'] = crop_count
+    total['target'] = target_count
+    if count == 0:
+        total['learning_rate'] = 0
+    else:
+        total['learning_rate'] = round(target_count / crop_count * 100, 2)
 
+    img_list = []
     for data in data_list:
         path = data['path'] # results/20210425214433.jpg
+        model = None
+        if 'model' in data:
+            model = data['model']
         height = int(data['height'] / data['width'] * args.result_width)
         img_list.append({'path':path, 'name':path.split('/')[1], 'height':height, 'width':args.result_width})
         path_folder = path.split('.')[0]       # results/20210425214433
         static_path = args.static_folder + path_folder  # static/results/20210425214433
+        crop_count = 0
+        target_count = 0
         learning_rate = 0
         if os.path.isdir(static_path):
             crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
             crop_count = crop_list.count()
-            total['count'] = total['count'] + crop_count
             crop_list = collection.find({'path_folder':path_folder , 'target':{'$exists':'true'}}, sort=[('order', 1)])
             target_count = crop_list.count()
-            total['target'] = total['target'] + target_count
             if crop_count != 0:
                 learning_rate = round(target_count / crop_count * 100, 1)
+        img_list[-1]['count'] = crop_count
+        img_list[-1]['target'] = target_count
         img_list[-1]['learning_rate'] = learning_rate
-    if total['count'] != 0:
-        total['learning_rate'] = round(total['target'] / total['count'] * 100, 1)
+        img_list[-1]['model'] = model
     return paging, img_list, total
+
+def get_graph():
+    collection = db['crop_images']
+    data_list = collection.find({'ed':{'$exists':'true'}})
+    xy_list = []
+    for data in data_list:
+        xy_list.append({'confidence':data['confidence'], 'ed':data['ed']})
+    return xy_list
+
+# train
+def get_dataset():
+    collection = db['crop_images']
+    data_list = collection.find({'target':{'$exists':'true'}})
+    img_list = []
+    for data in data_list:
+        img_list.append({'path':args.static_folder + data['path_folder'] + '/' + data['name'], 'label':data['target']})
+    return img_list
 

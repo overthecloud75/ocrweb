@@ -19,6 +19,9 @@
             <li class="nav-item ">
                 <a class="nav-link" href="{{ url_for('main.summary') }}">summary</a>
             </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.graph') }}">graph</a>
+            </li>
         </ul>
         {% else %}
         <ul class="navbar-nav">
@@ -30,6 +33,9 @@
             </li>
             <li class="nav-item ">
                 <a class="nav-link" href="{{ url_for('main.summary') }}">summary</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.graph') }}">graph</a>
             </li>
         </ul>
         {% endif %}
