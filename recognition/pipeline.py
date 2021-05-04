@@ -193,9 +193,10 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     bbox_scores = []
     for box_num in range(len(bboxes)):
         bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
-    box_filename, height, width = utils.saveResult(file_path, image[:, :, ::-1], polys,
+
+    # image save
+    box_filename, box_height, box_width = utils.saveResult(file_path, image[:, :, ::-1], polys,
                                                    adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
-    update_image({'path':args.result_folder + box_filename, 'height':height, 'width':width, 'model':args.saved_model})
     image = cv2.imread(file_path)
 
     # crop image 정렬
@@ -230,11 +231,23 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
 
     # prediction
     prediction = evaluate(model, converter, data)
+
+    total_confidence = 0
     for idx, data in enumerate(request_data_list):
         request_data = data.copy()
         request_data['pred'] = prediction[idx]['pred']
-        request_data['confidence'] = prediction[idx]['confidence']
+        confidence = prediction[idx]['confidence']
+        request_data['confidence'] = confidence
+        total_confidence = total_confidence + confidence
         update_crop_image(request_data)
+
+    if len(request_data_list) == 0:
+        avg_confidence = 0
+    else:
+        avg_confidence = round(total_confidence / len(request_data_list), 2)
+
+    # update_image
+    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.saved_model, 'avg_confidence':avg_confidence})
     return prediction
 
 

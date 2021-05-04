@@ -31,7 +31,11 @@
             </td>
             <td>
                 {% for crop in crop_imgs[img.path] %}
+                {% if crop.pred %}
                 <div>{{ crop.pred }}</div>
+                {% else %}
+                <div>[UNK]</div>
+                {% endif %}
                 {% endfor %}
             </td>
             <td>

@@ -6,11 +6,14 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import redirect
 
 from main import args
-from models import update_crop_image, get_images, get_detail, get_summary, get_graph
+from models import update_crop_image, get_images, get_detail, get_summary, get_graph, avg_confidence
 from form import SupervisingForm
 
 # blueprint
 bp = Blueprint('main', __name__, url_prefix='/')
+
+def confidence():
+    pass
 
 @bp.route('/')
 def index():
@@ -47,7 +50,7 @@ def summary():
 
 @bp.route('/graph/')
 def graph():
-    xy_list = get_graph()
+    xy_list, path_list, confidence_list = get_graph()
     return render_template('train/graph.html', **locals())
 
 

@@ -5,6 +5,9 @@
     <div style="width:80%;margin-left:auto;margin-right: auto">
         <canvas id="canvas"></canvas>
     </div>
+    <div style="width:80%;margin-left:auto;margin-right: auto">
+        <canvas id="canvas2"></canvas>
+    </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
 
@@ -26,6 +29,7 @@ new Chart(document.getElementById("canvas"), {
     },
     options: {
         legend: {
+            display: false,
             position: 'right'
             },
         scales: {
@@ -43,6 +47,43 @@ new Chart(document.getElementById("canvas"), {
                 scaleLabel: {
                     display: true,
                     labelString: 'editdistance'
+                }
+            }]
+        }
+    }
+});
+
+new Chart(document.getElementById("canvas2"), {
+    type: 'line',
+    data: {
+        labels : {{ path_list | tojson }},
+        datasets: [{
+            data: {{ confidence_list | tojson }},
+            borderColor: 'rgba(74, 16, 247, 1)',
+            fill: false,
+            lineTension: 0,
+            }]
+    },
+    options: {
+        legend: {
+            display: false,
+            position: 'right'
+            },
+        scales: {
+            xAxes: [{
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: 'path'
+                }
+            }],
+            yAxes: [{
+                display: true,
+                ticks: {
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'confidence'
                 }
             }]
         }

@@ -11,6 +11,7 @@
             <th>count</th>
             <th>target</th>
             <th>learning_rate(%)</th>
+            <th>confidence</th>
             <th>model</th>
         </tr>
         </thead>
@@ -21,11 +22,9 @@
             <td>{{ img.count }}</td>
             <td>{{ img.target }}</td>
             <td>{{ img.learning_rate }}</td>
-            {% if img.model %}
+            <td>{{ img.confidence }}</td>
             <td>{{ img.model }}</td>
-            {% else %}
             <td></td>
-            {% endif %}
         </tr>
         {% endfor %}
     </table>

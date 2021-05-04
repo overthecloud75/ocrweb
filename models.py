@@ -43,7 +43,7 @@ def post_login(request_data):
 # images
 def update_image(request_data):
     collection = db['images']
-    collection.insert_one(request_data)
+    collection.update_one({'path':request_data['path']}, {'$set':request_data}, upsert=True)
 
 def update_crop_image(request_data):
     collection = db['crop_images']
@@ -141,9 +141,6 @@ def get_summary(page=1):
     img_list = []
     for data in data_list:
         path = data['path'] # results/20210425214433.jpg
-        model = None
-        if 'model' in data:
-            model = data['model']
         height = int(data['height'] / data['width'] * args.result_width)
         img_list.append({'path':path, 'name':path.split('/')[1], 'height':height, 'width':args.result_width})
         path_folder = path.split('.')[0]       # results/20210425214433
@@ -161,8 +158,29 @@ def get_summary(page=1):
         img_list[-1]['count'] = crop_count
         img_list[-1]['target'] = target_count
         img_list[-1]['learning_rate'] = learning_rate
-        img_list[-1]['model'] = model
+        img_list[-1]['confidence'] = data['avg_confidence']
+        if 'model' in data:
+            img_list[-1]['model'] = data['model']
     return paging, img_list, total
+
+def avg_confidence():
+    collection = db['images']
+    data_list = collection.find(sort=[('path', -1)])
+
+    for data in data_list:
+        collection = db['crop_images']
+        crop_list = collection.find({'path_folder':data['path'].split('.')[0]})
+        count = crop_list.count()
+        if count > 0:
+            total_confidence = 0
+            for crop in crop_list:
+                total_confidence = total_confidence + crop['confidence']
+            avg_confidence = round(total_confidence/count, 2)
+        else:
+            avg_confidence = 0
+
+        request_data = {'path':data['path'], 'avg_confidence':avg_confidence}
+        update_image(request_data)
 
 def get_graph():
     collection = db['crop_images']
@@ -170,7 +188,16 @@ def get_graph():
     xy_list = []
     for data in data_list:
         xy_list.append({'confidence':data['confidence'], 'ed':data['ed']})
-    return xy_list
+    collection = db['images']
+    data_list = collection.find(sort=[('path', 1)])
+    path_list = []
+    confidence_list = []
+    for data in data_list:
+        path = data['path'].split('/')[1]
+        path = path.split('.')[0]
+        path_list.append(path)
+        confidence_list.append(data['avg_confidence'])
+    return xy_list, path_list, confidence_list
 
 # train
 def get_dataset():
