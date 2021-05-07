@@ -73,17 +73,15 @@ def crop_image_sort(bboxes, overlap=0.3):
         local_id = None
         local_min = None
         for idy in range(num_bboxes):
-            bbox_coords = bboxes[idy]
-            bbox_coords = bbox_coords.astype(np.int64)
-
+            bbox = bboxes[idy]
             if idy not in sort_list:
                 if local_min is None:
                     local_id = idy
-                    local_min = bbox_coords
+                    local_min = bbox
                     continue
                 else:
                     local_height = local_min[2][1] - local_min[1][1]
-                    diff = np.min(local_min, axis=0) - np.min(bbox_coords, axis=0)
+                    diff = local_min[0] - bbox[0]
                     if diff[0] <= 0 and diff[1] <= 0:
                         pass
                     elif diff[0] <= 0 and diff[1] > 0:
@@ -91,23 +89,23 @@ def crop_image_sort(bboxes, overlap=0.3):
                             pass
                         else:
                             local_id = idy
-                            local_min = bbox_coords
+                            local_min = bbox
                     elif diff[0] > 0 and diff[1] <= 0:
                         if abs(diff[1]) < local_height * overlap:
                             local_id = idy
-                            local_min = bbox_coords
+                            local_min = bbox
                         else:
                             pass
                     else:
-                        local_min = bbox_coords
+                        local_id = idy
+                        local_min = bbox
         sort_list.append(local_id)
-
-    bbox_coords_list = []
+    bbox_list = []
     for idx in sort_list:
-        bbox_coords = bboxes[idx]
-        bbox_coords = bbox_coords.astype(np.int64)
-        bbox_coords_list.append(bbox_coords)
-    return bbox_coords_list
+        bbox = bboxes[idx]
+        bbox = bbox.astype(np.int64)
+        bbox_list.append(bbox)
+    return bbox_list
 
 def crop(pts, image):
     """
@@ -190,12 +188,10 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     bboxes, polys, det_scores = \
         test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly,
                           args, refine_net)
-    bbox_scores = []
     widths = []
     heights = []
 
     for box_num in range(len(bboxes)):
-        bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
         width = (bboxes[box_num][1][0] - bboxes[box_num][0][0]).item()
         height = (bboxes[box_num][2][1] - bboxes[box_num][1][1]).item()
         widths.append(width)
@@ -205,17 +201,16 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     is_rotate = False
     if widths:
         width_height_ratio = round(sum(widths) / sum(heights), 2)
-        if width_height_ratio < args.width_height_ratio:
+        if width_height_ratio < args.width_height_ratio and args.rotate:
             is_rotate = True
 
     # image save
     # image 값은 adjust 되기 전 image
     box_filename, image, bboxes, box_height, box_width = utils.saveResult(file_path, image[:, :, ::-1], polys, bboxes,
                                                    adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder, is_rotate=is_rotate)
-    # image = cv2.imread(file_path)
 
     # crop image 정렬
-    bbox_coords_list = crop_image_sort(bboxes, overlap=args.overlap)
+    bboxes = crop_image_sort(bboxes, overlap=args.overlap)
 
     # crop images
     base_dir = args.static_folder
@@ -229,9 +224,9 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     crop_image_list = []
     request_data_list = []
 
-    for idx, bbox_coords in enumerate(bbox_coords_list):
-        if np.all(bbox_coords) > 0:
-            word = crop(bbox_coords, image)
+    for idx, bbox in enumerate(bboxes):
+        if np.all(bbox) > 0:
+            word = crop(bbox, image)
             try:
                 height, width, channel = word.shape
                 img_name = str(idx) + '.jpg'

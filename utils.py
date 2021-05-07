@@ -29,7 +29,7 @@ def list_files(in_path):
     # gt_files.sort()
     return img_files, mask_files, gt_files
 
-def saveResult(img_file, img, polys, bboxes, adjust_width=500, base_dir='static/', dirname='results/', verticals=None, texts=None, is_rotate=False):
+def saveResult(img_file, img, polys, bboxes, adjust_width=450, base_dir='static/', dirname='results/', verticals=None, texts=None, is_rotate=False):
         """ save text detection result one by one
         Args:
             img_file (str): image file name
@@ -66,6 +66,7 @@ def saveResult(img_file, img, polys, bboxes, adjust_width=500, base_dir='static/
                 # 90도 시계 방향 회전 + 수평 이동
                 poly = np.dot(poly, np.array([[0, 1], [-1, 0]])) + np.array([height, 0])
                 box = np.dot((bboxes[idx]), np.array([[0, 1], [-1, 0]])) + np.array([height, 0])
+                box = np.array([box[3], box[0], box[1], box[2]])
                 rotate_bboxes.append(box)
             cv2.polylines(poly_img, [poly.reshape((-1, 1, 2))], True, color=(0, 0, 255), thickness=2)
             ptColor = (0, 255, 255)
@@ -80,7 +81,6 @@ def saveResult(img_file, img, polys, bboxes, adjust_width=500, base_dir='static/
                 cv2.putText(img, "{}".format(texts[idx]), tuple(poly[0]), font, font_scale, (0, 255, 255), thickness=1)
 
         # Save result image
-
         poly_img = cv2.resize(poly_img, dsize=(adjust_width, adjust_height), interpolation=cv2.INTER_LINEAR)
         cv2.imwrite(img_file, poly_img)
         return filename + '.jpg', img, rotate_bboxes, adjust_height, adjust_width
