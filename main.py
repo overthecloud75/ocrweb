@@ -20,7 +20,8 @@ parser.add_argument('--upload_folder', default='upload/', type=str, help='folder
 parser.add_argument('--static_folder', default='static/', type=str, help='folder path to web images')
 parser.add_argument('--result_folder', default='results/', type=str, help='folder path to input images')
 parser.add_argument('--result_width', default=450, type=int, help='image size of result image')
-parser.add_argument('--overlap', default=0.2, type=float, help='to sort the crop image')
+parser.add_argument('--overlap', default=0.3, type=float, help='to sort the crop image')
+parser.add_argument('--width_height_ratio', default=0.55, type=float, help='to check if is rotated')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 

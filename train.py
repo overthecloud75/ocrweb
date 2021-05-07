@@ -124,7 +124,7 @@ def train(opt):
     best_accuracy = -1
     best_norm_ED = -1
     start_time = time.time()
-    nb_epochs = 20
+    nb_epochs = 40
     for epoch in range(nb_epochs + 1):
         # validation
         logger.info('validation start')

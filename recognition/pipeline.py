@@ -66,14 +66,14 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, a
 
     return boxes, polys, det_scores
 
-def crop_image_sort(bbox_scores, overlap=0.2):
-    num_bboxes = len(bbox_scores)
+def crop_image_sort(bboxes, overlap=0.3):
+    num_bboxes = len(bboxes)
     sort_list = []
     for idx in range(num_bboxes):
         local_id = None
         local_min = None
         for idy in range(num_bboxes):
-            bbox_coords = bbox_scores[idy][1]
+            bbox_coords = bboxes[idy]
             bbox_coords = bbox_coords.astype(np.int64)
 
             if idy not in sort_list:
@@ -104,7 +104,7 @@ def crop_image_sort(bbox_scores, overlap=0.2):
 
     bbox_coords_list = []
     for idx in sort_list:
-        bbox_coords = bbox_scores[idx][1]
+        bbox_coords = bboxes[idx]
         bbox_coords = bbox_coords.astype(np.int64)
         bbox_coords_list.append(bbox_coords)
     return bbox_coords_list
@@ -191,16 +191,31 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly,
                           args, refine_net)
     bbox_scores = []
+    widths = []
+    heights = []
+
     for box_num in range(len(bboxes)):
         bbox_scores.append((str(det_scores[box_num]), bboxes[box_num]))
+        width = (bboxes[box_num][1][0] - bboxes[box_num][0][0]).item()
+        height = (bboxes[box_num][2][1] - bboxes[box_num][1][1]).item()
+        widths.append(width)
+        heights.append(height)
+
+    width_height_ratio = 1
+    is_rotate = False
+    if widths:
+        width_height_ratio = round(sum(widths) / sum(heights), 2)
+        if width_height_ratio < args.width_height_ratio:
+            is_rotate = True
 
     # image save
-    box_filename, box_height, box_width = utils.saveResult(file_path, image[:, :, ::-1], polys,
-                                                   adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder)
-    image = cv2.imread(file_path)
+    # image 값은 adjust 되기 전 image
+    box_filename, image, bboxes, box_height, box_width = utils.saveResult(file_path, image[:, :, ::-1], polys, bboxes,
+                                                   adjust_width=args.result_width, base_dir=args.static_folder, dirname=args.result_folder, is_rotate=is_rotate)
+    # image = cv2.imread(file_path)
 
     # crop image 정렬
-    bbox_coords_list = crop_image_sort(bbox_scores, overlap=args.overlap)
+    bbox_coords_list = crop_image_sort(bboxes, overlap=args.overlap)
 
     # crop images
     base_dir = args.static_folder
@@ -247,7 +262,8 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         avg_confidence = round(total_confidence / len(request_data_list), 2)
 
     # update_image
-    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.saved_model, 'avg_confidence':avg_confidence})
+    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.saved_model,
+                  'avg_confidence':avg_confidence, 'width_height_ratio':width_height_ratio})
     return prediction
 
 

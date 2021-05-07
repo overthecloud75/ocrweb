@@ -158,6 +158,8 @@ def get_summary(page=1):
         img_list[-1]['count'] = crop_count
         img_list[-1]['target'] = target_count
         img_list[-1]['learning_rate'] = learning_rate
+        if 'width_height_ratio' in data:
+            img_list[-1]['width_height_ratio'] = data['width_height_ratio']
         img_list[-1]['confidence'] = data['avg_confidence']
         if 'model' in data:
             img_list[-1]['model'] = data['model']
