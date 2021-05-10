@@ -14,11 +14,9 @@ import torch.utils.data
 import numpy as np
 
 from recognition.utils import AttnLabelConverter, Averager
-from recognition.dataset import CustomDataset, hierarchical_dataset, AlignCollate, Batch_Balanced_Dataset
+from recognition.dataset import hierarchical_dataset, AlignCollate, Batch_Balanced_Dataset
 from recognition.model import Model
 from recognition.test import validation
-
-from models import get_dataset
 
 import logging
 import logging.handlers
@@ -35,18 +33,12 @@ def train(opt):
         logger.info('Filtering the images whose label is longer than opt.batch_max_length')
         # see https://github.com/clovaai/deep-text-recognition-benchmark/blob/6593928855fb7abb999a99f428b3e4477d4ae356/dataset.py#L130
 
-    AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
-
-    img_list = get_dataset()
-    train_dataset = CustomDataset(img_list, opt)
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=opt.batch_size,
-        shuffle=True,  # 'True' to check training progress with validation function.
-        num_workers=int(opt.workers),
-        collate_fn=AlignCollate_valid, pin_memory=True)
+    train_dataset = Batch_Balanced_Dataset(opt)
+    train_dataset.get_batch()
     logger.info('train_dataset')
 
-    valid_dataset = CustomDataset(img_list, opt)
+    AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD)
+    valid_dataset = hierarchical_dataset(root=opt.valid_data, opt=opt)
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=opt.batch_size,
         shuffle=True,  # 'True' to check training progress with validation function.
@@ -83,6 +75,7 @@ def train(opt):
                 param.data.fill_(1)
             continue
 
+    #model = torch.nn.DataParallel(model).to(device)
     model.to(device)
     model.train()
     if opt.saved_model != '':
@@ -114,6 +107,7 @@ def train(opt):
     logger.info('Optimizer: %s' %optimizer)
 
     """ start training """
+    start_iter = 0
     if opt.saved_model != '':
         try:
             start_iter = int(opt.saved_model.split('_')[-1].split('.')[0])
@@ -121,76 +115,101 @@ def train(opt):
         except:
             pass
 
+    start_time = time.time()
     best_accuracy = -1
     best_norm_ED = -1
-    start_time = time.time()
-    nb_epochs = 40
-    for epoch in range(nb_epochs + 1):
-        # validation
-        logger.info('validation start')
+    iteration = start_iter
 
-        model.eval()
-        logger.info('model eval start')
-        with torch.no_grad():
-            valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels, infer_time, length_of_data = validation(
-                model, criterion, valid_loader, converter, opt)
-        predicted_result = ''
-        for gt, pred, confidence in zip(labels[:5], preds[:5], confidence_score[:5]):
-            if 'Attn' in opt.Prediction:
-                gt = gt[:gt.find('[s]')]
-                pred = pred[:pred.find('[s]')]
-                predicted_result += f'{gt:25s} | {pred:25s} | {confidence:0.4f}\t{str(pred == gt)}\n'
-        elapsed_time = time.time() - start_time
-        logger.info('train_loss: %s, valid_loss: %s' %(loss_avg.val(), valid_loss))
-        logger.info('accuracy: %s, ed: %s, elapsed_time: %s' %(current_accuracy, current_norm_ED, elapsed_time))
-        logger.info(predicted_result)
-        logger.info('model eval end')
-        loss_avg.reset()
+    while True:
+        logger.info('iteration: %s' %str(iteration))
+        # validation part
+        if (iteration + 1) % opt.valInterval == 0 or (iteration == 0 and opt.saved_model == ''): # To see training progress, we also conduct validation when 'iteration == 0'
+            logger.info('validation start')
+            elapsed_time = time.time() - start_time
+            # for log
+            with open(f'./saved_models/{opt.exp_name}/log_train.txt', 'a') as log:
+                model.eval()
+                logger.info('model eval start')
+                with torch.no_grad():
+                    valid_loss, current_accuracy, current_norm_ED, preds, confidence_score, labels, infer_time, length_of_data = validation(
+                        model, criterion, valid_loader, converter, opt)
+                logger.info('model eval end')
+                model.train()
 
-        logger.info('before save model')
-        if current_accuracy > best_accuracy:
-            best_accuracy = current_accuracy
-            torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
-        if current_norm_ED > best_norm_ED:
-            best_norm_ED = current_norm_ED
-            torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
-        best_model_log = f'{"Best_accuracy":17s}:{best_accuracy:0.3f}, {"Best_norm_ED":17s}:{best_norm_ED:0.2f}'
-        logger.info(best_model_log)
-        logger.info('after save model')
+                # training loss and validation loss
+                loss_log = f'[{iteration+1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f}, Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}'
+                loss_avg.reset()
 
-        # train
-        model.train()
-        for batch_idx, samples in enumerate(train_loader):
-            img_tensor, label = samples
-            img = img_tensor.to(device)
-            logger.info('image to device')
-            text, length = converter.encode(label, batch_max_length=opt.batch_max_length)
+                current_model_log = f'{"Current_accuracy":17s}: {current_accuracy:0.3f}, {"Current_norm_ED":17s}: {current_norm_ED:0.2f}'
 
-            try:
-                preds = model(img, text[:, :-1])  # align with Attention.forward
-            except Exception as e:
-                logger.info(e)
-                sys.exit()
-            logger.info('preds')
-            target = text[:, 1:]  # without [GO] Symbol
-            cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
-            loss_avg.add(cost)
+                # keep best accuracy model (on valid dataset)
+                logger.info('before save model')
+                if current_accuracy > best_accuracy:
+                    best_accuracy = current_accuracy
+                    torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
+                    #torch.save(model.cpu().state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
+                if current_norm_ED > best_norm_ED:
+                    best_norm_ED = current_norm_ED
+                    torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
+                    #torch.save(model.cpu().state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
+                best_model_log = f'{"Best_accuracy":17s}: {best_accuracy:0.3f}, {"Best_norm_ED":17s}: {best_norm_ED:0.2f}'
+                logger.info('after save model')
 
-            model.zero_grad()
-            cost.backward()
-            logger.info('backward')
-            torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
-            try:
-                optimizer.step()
-            except Exception as e:
-                logger.info(e)
-                sys.exit()
-            logger.info('optimizer')
+                loss_model_log = f'{loss_log}\n{current_model_log}\n{best_model_log}'
+                print(loss_model_log)
+                log.write(loss_model_log + '\n')
 
-            print('Epoch {:4d}/{} Batch {}/{} Cost: {:.6f}'.format(
-                epoch, nb_epochs, batch_idx + 1, len(train_loader),
-                cost.item()
-            ))
+                # show some predicted results
+                dashed_line = '-' * 80
+                head = f'{"Ground Truth":25s} | {"Prediction":25s} | Confidence Score & T/F'
+                predicted_result_log = f'{dashed_line}\n{head}\n{dashed_line}\n'
+                for gt, pred, confidence in zip(labels[:5], preds[:5], confidence_score[:5]):
+                    if 'Attn' in opt.Prediction:
+                        gt = gt[:gt.find('[s]')]
+                        pred = pred[:pred.find('[s]')]
+
+                    predicted_result_log += f'{gt:25s} | {pred:25s} | {confidence:0.4f}\t{str(pred == gt)}\n'
+                predicted_result_log += f'{dashed_line}'
+                print(predicted_result_log)
+                log.write(predicted_result_log + '\n')
+
+        #model.to(device)
+        # train part
+        image_tensors, labels = train_dataset.get_batch()
+        image = image_tensors.to(device)
+        logger.info('image to device')
+        text, length = converter.encode(labels, batch_max_length=opt.batch_max_length)
+
+        try:
+            preds = model(image, text[:, :-1])  # align with Attention.forward
+        except Exception as e:
+            logger.info(e)
+            sys.exit()
+        logger.info('preds')
+        target = text[:, 1:]  # without [GO] Symbol
+        cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
+
+        model.zero_grad()
+        cost.backward()
+        logger.info('backward')
+        torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
+        try:
+            optimizer.step()
+        except Exception as e:
+            logger.info(e)
+            sys.exit()
+        logger.info('optimizer')
+
+        loss_avg.add(cost)
+        # save model per 1e+5 iter.
+        if (iteration + 1) %1e+5 == 0:
+            torch.save(
+                model.state_dict(), f'./saved_models/{opt.exp_name}/iter_{iteration+1}.pth')
+
+        if (iteration + 1) == opt.num_iter:
+            logger.info('end the training')
+            sys.exit()
+        iteration += 1
 
 def set_logger():  # 로그 환경을 설정해주는 함수
     logger = logging.getLogger()
@@ -225,10 +244,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=196, help='input batch size')
     parser.add_argument('--num_iter', type=int, default=300000, help='number of iterations to train for')
     parser.add_argument('--valInterval', type=int, default=2000, help='Interval between each validation')  #2000
-    #parser.add_argument('--saved_model', default='', help="path to model to continue training")
-    parser.add_argument('--saved_model', default='saved_models/TPS-VGG-BiLstm-Attn-Kor.pth', help="path to model to continue training")
-    #parser.add_argument('--FT', action='store_true', help='whether to do fine-tuning')
-    parser.add_argument('--FT', default=True, help='whether to do fine-tuning')
+    parser.add_argument('--saved_model', default='', help="path to model to continue training")
+    #parser.add_argument('--saved_model', default='saved_models/TPS-VGG-BiLstm-Attn-Seed1111/best_accuracy.pth', help="path to model to continue training")
+    parser.add_argument('--FT', action='store_true', help='whether to do fine-tuning')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is Adadelta)')
     parser.add_argument('--lr', type=float, default=1, help='learning rate, default=1.0 for Adadelta')
     parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for adam. default=0.9')
@@ -261,6 +279,7 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_size', type=int, default=256, help='the size of the LSTM hidden state')
 
     opt = parser.parse_args()
+
     if not opt.exp_name:
         opt.exp_name = f'{opt.Transformation}-{opt.FeatureExtraction}-{opt.SequenceModeling}-{opt.Prediction}'
         opt.exp_name += f'-Seed{opt.manualSeed}'
@@ -290,5 +309,13 @@ if __name__ == '__main__':
         # check multi-GPU issue https://github.com/clovaai/deep-text-recognition-benchmark/issues/1
         opt.workers = opt.workers * opt.num_gpu
         opt.batch_size = opt.batch_size * opt.num_gpu
+
+        """ previous version
+        print('To equlize batch stats to 1-GPU setting, the batch_size is multiplied with num_gpu and multiplied batch_size is ', opt.batch_size)
+        opt.batch_size = opt.batch_size * opt.num_gpu
+        print('To equalize the number of epochs to 1-GPU setting, num_iter is divided with num_gpu by default.')
+        If you dont care about it, just commnet out these line.)
+        opt.num_iter = int(opt.num_iter / opt.num_gpu)
+        """
 
     train(opt)

@@ -257,7 +257,7 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         avg_confidence = round(total_confidence / len(request_data_list), 2)
 
     # update_image
-    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.saved_model,
+    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.recognition_model,
                   'avg_confidence':avg_confidence, 'width_height_ratio':width_height_ratio})
     return prediction
 

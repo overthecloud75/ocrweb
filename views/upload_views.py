@@ -1,5 +1,4 @@
 import os
-import time
 import datetime
 
 from flask import Blueprint, request, render_template, url_for, jsonify 
@@ -21,15 +20,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 bp = Blueprint('upload', __name__, url_prefix='/upload')
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'jfif', 'xlsx'])
 
-def execute_net():
+def execute_detection_model():
     # load net
-    net = CRAFT()  # initialize
+    net = CRAFT()
 
-    print('Loading weights from checkpoint (' + args.trained_model + ')')
+    print('Loading detection model from %s' %args.detection_model)
     if args.cuda:
-        net.load_state_dict(pipeline.copyStateDict(torch.load(args.trained_model)))
+        net.load_state_dict(pipeline.copyStateDict(torch.load(args.detection_model)))
     else:
-        net.load_state_dict(pipeline.copyStateDict(torch.load(args.trained_model, map_location='cpu')))
+        net.load_state_dict(pipeline.copyStateDict(torch.load(args.detection_model, map_location='cpu')))
 
     if args.cuda:
         net = net.cuda()
@@ -44,7 +43,7 @@ def execute_net():
         from recognition.refinenet import RefineNet
 
         refine_net = RefineNet()
-        print('Loading weights of refiner from checkpoint (' + args.refiner_model + ')')
+        print('Loading refiner model from %s' %args.refiner_model)
         if args.cuda:
             refine_net.load_state_dict(pipeline.copyStateDict(torch.load(args.refiner_model)))
             refine_net = refine_net.cuda()
@@ -55,7 +54,7 @@ def execute_net():
         args.poly = True
     return net, refine_net
 
-def excute_model():
+def excute_recognition_model():
     """Open csv file wherein you are going to write the Predicted Words"""
     if 'CTC' in args.Prediction:
         converter = CTCLabelConverter(args.character)
@@ -70,8 +69,8 @@ def excute_model():
     #model = torch.nn.DataParallel(model).to(device)
 
     # load model
-    print('Loading pretrained model from %s' % args.saved_model)
-    model.load_state_dict(torch.load(args.saved_model, map_location=device))
+    print('Loading recognition model from %s' %args.recognition_model)
+    model.load_state_dict(torch.load(args.recognition_model, map_location=device))
 
     return model, converter
 
@@ -103,5 +102,5 @@ def predict():
     prediction = ocr(file)
     return jsonify(prediction)
 
-net, refine_net = execute_net()
-model, converter = excute_model()
+net, refine_net = execute_detection_model()
+model, converter = excute_recognition_model()
