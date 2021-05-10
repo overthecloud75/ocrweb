@@ -18,7 +18,7 @@ from recognition.dataset import CustomDataset, hierarchical_dataset, AlignCollat
 from recognition.model import Model
 from recognition.test import validation
 
-from models import get_dataset
+from models import get_dataset, update_training_summary, update_training_result
 
 import logging
 import logging.handlers
@@ -54,7 +54,10 @@ def train(opt):
         collate_fn=AlignCollate_valid, pin_memory=True)
 
     logger.info('valid_loader')
-    #sys.exit()
+
+    # model
+    request_data = {'exp':opt.exp_name, 'pretrained_model':opt.pretrained_model, 'dataset_count':len(train_dataset)}
+    model_name = update_training_summary(request_data)
 
     """ model configuration """
     converter = AttnLabelConverter(opt.character)
@@ -85,12 +88,12 @@ def train(opt):
 
     model.to(device)
     model.train()
-    if opt.saved_model != '':
-        logger.info('loading pretrained model from %s' %opt.saved_model)
+    if opt.pretrained_model != '':
+        logger.info('loading pretrained model from %s' %opt.pretrained_model)
         if opt.FT:
-            model.load_state_dict(torch.load(opt.saved_model), strict=False)
+            model.load_state_dict(torch.load(opt.pretrained_model), strict=False)
         else:
-            model.load_state_dict(torch.load(opt.saved_model))
+            model.load_state_dict(torch.load(opt.pretrained_model))
 
     """ setup loss """
     criterion = torch.nn.CrossEntropyLoss(ignore_index=0).to(device)  # ignore [GO] token = ignore index 0
@@ -114,9 +117,9 @@ def train(opt):
     logger.info('Optimizer: %s' %optimizer)
 
     """ start training """
-    if opt.saved_model != '':
+    if opt.pretrained_model != '':
         try:
-            start_iter = int(opt.saved_model.split('_')[-1].split('.')[0])
+            start_iter = int(opt.pretrained_model.split('_')[-1].split('.')[0])
             logger.info('continue to train, start_iter %s: ' %str(start_iter))
         except:
             pass
@@ -145,15 +148,15 @@ def train(opt):
         logger.info('accuracy: %s, ed: %s, elapsed_time: %s' %(current_accuracy, current_norm_ED, elapsed_time))
         logger.info(predicted_result)
         logger.info('model eval end')
+        request_data = {'epoch':epoch, 'loss':round(valid_loss.item(), 2), 'accuracy':round(current_accuracy, 2), 'ed':round(current_norm_ED, 2), 'model':model_name}
+        update_training_result(request_data)
         loss_avg.reset()
 
         logger.info('before save model')
         if current_accuracy > best_accuracy:
             best_accuracy = current_accuracy
-            torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_accuracy.pth')
-        if current_norm_ED > best_norm_ED:
-            best_norm_ED = current_norm_ED
-            torch.save(model.state_dict(), f'./saved_models/{opt.exp_name}/best_norm_ED.pth')
+            torch.save(model.state_dict(), 'pretrained_models/' + model_name)
+
         best_model_log = f'{"Best_accuracy":17s}:{best_accuracy:0.3f}, {"Best_norm_ED":17s}:{best_norm_ED:0.2f}'
         logger.info(best_model_log)
         logger.info('after save model')
@@ -171,23 +174,23 @@ def train(opt):
             except Exception as e:
                 logger.info(e)
                 sys.exit()
-            logger.info('preds')
+            #logger.info('preds')
             target = text[:, 1:]  # without [GO] Symbol
             cost = criterion(preds.view(-1, preds.shape[-1]), target.contiguous().view(-1))
             loss_avg.add(cost)
 
             model.zero_grad()
             cost.backward()
-            logger.info('backward')
+            #logger.info('backward')
             torch.nn.utils.clip_grad_norm_(model.parameters(), opt.grad_clip)  # gradient clipping with 5 (Default)
             try:
                 optimizer.step()
             except Exception as e:
                 logger.info(e)
                 sys.exit()
-            logger.info('optimizer')
+            #logger.info('optimizer')
 
-            print('Epoch {:4d}/{} Batch {}/{} Cost: {:.6f}'.format(
+            logger.info('Epoch {:4d}/{} Batch {}/{} Cost: {:.6f}'.format(
                 epoch, nb_epochs, batch_idx + 1, len(train_loader),
                 cost.item()
             ))
@@ -225,8 +228,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=196, help='input batch size')
     parser.add_argument('--num_iter', type=int, default=300000, help='number of iterations to train for')
     parser.add_argument('--valInterval', type=int, default=2000, help='Interval between each validation')  #2000
-    #parser.add_argument('--saved_model', default='', help="path to model to continue training")
-    parser.add_argument('--saved_model', default='saved_models/TPS-VGG-BiLstm-Attn-Kor_un.pth', help="path to model to continue training")
+    #parser.add_argument('--pretrained_model', default='', help="path to model to continue training")
+    parser.add_argument('--pretrained_model', default='pretrained_models/TPS-VGG-BiLstm-Attn-Kor_un.pth', help="path to model to continue training")
     parser.add_argument('--FT', action='store_true', help='whether to do fine-tuning')
     #parser.add_argument('--FT', default=True, help='whether to do fine-tuning')
     parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is Adadelta)')
@@ -263,9 +266,9 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     if not opt.exp_name:
         opt.exp_name = f'{opt.Transformation}-{opt.FeatureExtraction}-{opt.SequenceModeling}-{opt.Prediction}'
-        opt.exp_name += f'-Seed{opt.manualSeed}'
+        # opt.exp_name += f'-Seed{opt.manualSeed}'
 
-    os.makedirs(f'./saved_models/{opt.exp_name}', exist_ok=True)
+    os.makedirs('pretrained_models/', exist_ok=True)
 
     """ vocab / character number configuration """
     if opt.sensitive:

@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 from werkzeug.utils import redirect
 
 from main import args
-from models import update_crop_image, get_images, get_detail, get_summary, get_graph, avg_confidence
+from models import update_crop_image, get_images, get_detail, get_summary, get_statistics, get_loss
 from form import SupervisingForm
 
 # blueprint
@@ -19,8 +19,15 @@ def confidence():
 def index():
     return render_template('base.html')
 
-@bp.route('/train/')
-def train():
+@bp.route('/summary/')
+def summary():
+    page = int(request.args.get('page', 1))
+    # filename = request.args.get('filename', None)
+    paging, img_list, total = get_summary(page=page)
+    return render_template('train/summary.html', **locals())
+
+@bp.route('/prediction/')
+def prediction():
     page = int(request.args.get('page', 1))
     # filename = request.args.get('filename', None)
     paging, img_list, crop_imgs = get_images(page=page)
@@ -41,17 +48,34 @@ def detail():
     paging, crop_imgs = get_detail(page=page, filename=filename)
     return render_template('train/detail.html', **locals())
 
-@bp.route('/summary/')
-def summary():
-    page = int(request.args.get('page', 1))
-    # filename = request.args.get('filename', None)
-    paging, img_list, total = get_summary(page=page)
-    return render_template('train/summary.html', **locals())
+@bp.route('/statistics/')
+def statistics():
+    xy_list, path_list, confidence_list = get_statistics()
+    return render_template('train/statistics.html', **locals())
 
-@bp.route('/graph/')
-def graph():
-    xy_list, path_list, confidence_list = get_graph()
-    return render_template('train/graph.html', **locals())
+@bp.route('/loss/')
+def loss():
+    loss_data = get_loss()
+    model_list = []
+    epoch_list = []
+    loss_list = {}
+    accuracy_list = {}
+    colors = ['#ff0000', '#0000ff', '#f56d798', '#ff8397', '#6970d5']
+    for model in loss_data:
+        epochs = []
+        model_list.append(model)
+        loss_list[model] = []
+        accuracy_list[model] = []
+        for data in loss_data[model]:
+            epochs.append(data['epoch'])
+            loss_list[model].append(data['loss'])
+            accuracy_list[model].append(data['accuracy'])
+        if epoch_list:
+            if len(epoch_list) < len(epochs):
+                epoch_list = epochs
+        else:
+            epoch_list = epochs
+    return render_template('train/loss.html', **locals())
 
 
 

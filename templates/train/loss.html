@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container my-3">
+    <div style="width:80%;margin-left:auto;margin-right: auto">
+        <canvas id="canvas"></canvas>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+
+<!-- https://www.chartjs.org/ -->
+<!-- https://towardsdatascience.com/flask-and-chart-js-tutorial-i-d33e05fba845 -->
+
+<script>
+new Chart(document.getElementById("canvas"), {
+    type: 'line',
+    data: {
+        labels : {{ epoch_list | tojson }},
+        datasets: [
+            {% for model in model_list %}
+            {
+            yAxisID: 'A',
+            label: '{{ model }}',
+            data: {{ loss_list[model] | tojson }},
+            borderColor: '{{ colors[loop.index0] }}',
+            fill: false,
+            lineTension: 0,
+            },
+            {
+            yAxisID: 'B',
+            label: '{{ model }}',
+            data: {{ accuracy_list[model] | tojson }},
+            borderColor: '{{ colors[loop.index0] }}',
+            fill: false,
+            lineTension: 0,
+            },
+            {% endfor %}
+            ],
+    },
+    options: {
+        legend: {
+            display: true,
+            position: 'right'
+            },
+        scales: {
+            xAxes: [{
+                display: true,
+                scaleLabel: {
+                    display: true,
+                    labelString: 'epoch'
+                }
+            }],
+            yAxes: [{
+                id: 'A',
+                type: 'linear',
+                position: 'left',
+                display: true,
+                ticks: {
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'loss'
+                }
+                },
+                {
+                id: 'B',
+                type: 'linear',
+                position: 'right',
+                display: true,
+                ticks: {
+                },
+                scaleLabel: {
+                    display: true,
+                    labelString: 'accuracy'
+                }
+            }],
+        }
+    }
+});
+
+</script>
+{% endblock %}

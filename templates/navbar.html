@@ -14,13 +14,16 @@
                 <a class="nav-link" href="{{ url_for('upload.upload_file') }}">upload</a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link" href="{{ url_for('main.train') }}">train</a>
-            </li>
-            <li class="nav-item ">
                 <a class="nav-link" href="{{ url_for('main.summary') }}">summary</a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link" href="{{ url_for('main.graph') }}">graph</a>
+                <a class="nav-link" href="{{ url_for('main.prediction') }}">prediction</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.statistics') }}">statistics</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.loss') }}">loss</a>
             </li>
         </ul>
         {% else %}
@@ -29,13 +32,16 @@
                 <a class="nav-link" href="{{ url_for('upload.upload_file') }}">upload</a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link" href="{{ url_for('main.train') }}">train</a>
-            </li>
-            <li class="nav-item ">
                 <a class="nav-link" href="{{ url_for('main.summary') }}">summary</a>
             </li>
             <li class="nav-item ">
-                <a class="nav-link" href="{{ url_for('main.graph') }}">graph</a>
+                <a class="nav-link" href="{{ url_for('main.prediction') }}">prediction</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.statistics') }}">statistics</a>
+            </li>
+            <li class="nav-item ">
+                <a class="nav-link" href="{{ url_for('main.loss') }}">loss</a>
             </li>
         </ul>
         {% endif %}

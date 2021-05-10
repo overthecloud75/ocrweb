@@ -1,9 +1,8 @@
 data/
 log/
-saved_models/
+pretrained_models/
 static/results/
 upload/
 weights/
 train_data/
 request_test.py
-test.py

@@ -15,7 +15,7 @@ db = mongoClient['OcrWeb']
 # users
 def post_signUp(request_data):
     collection = db['users']
-    user_data = collection.find_one(filter={'email': request_data['email']})
+    user_data = collection.find_one(filter={'email':request_data['email']})
     error = None
     if user_data:
         error = '이미 존재하는 사용자입니다.'
@@ -27,7 +27,7 @@ def post_signUp(request_data):
             user_id = 1
         request_data['create_time'] = str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         request_data['user_id'] = user_id
-        collection.insert(request_data)
+        collection.insert_one(request_data)
     return error
 
 def post_login(request_data):
@@ -184,7 +184,7 @@ def avg_confidence():
         request_data = {'path':data['path'], 'avg_confidence':avg_confidence}
         update_image(request_data)
 
-def get_graph():
+def get_statistics():
     collection = db['crop_images']
     data_list = collection.find({'ed':{'$exists':'true'}})
     xy_list = []
@@ -209,4 +209,27 @@ def get_dataset():
     for data in data_list:
         img_list.append({'path':args.static_folder + data['path_folder'] + '/' + data['name'], 'label':data['target']})
     return img_list
+
+def update_training_summary(request_data):
+    collection = db['train']
+    request_data['name'] = str(datetime.datetime.now().strftime('%Y%m%d%H%M')) + '.pth'
+    collection.insert_one(request_data)
+    return request_data['name']
+
+def update_training_result(request_data):
+    collection = db['train']
+    collection.insert_one(request_data)
+
+def get_loss():
+    collection = db['train']
+    per_page = 5
+    summary_list = collection.find({'name':{'$exists':'true'}}, sort=[('name', -1)]).limit(per_page)
+    loss_data = {}
+    for summary in summary_list:
+        data_list = collection.find({'model':summary['name']}, sort=[('epoch', 1)])
+        loss_data[summary['name']] = []
+        for data in data_list:
+            loss_data[summary['name']].append(data)
+    return loss_data
+
 
