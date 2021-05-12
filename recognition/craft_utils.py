@@ -28,7 +28,7 @@ def getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text)
     text_score_comb = np.clip(text_score + link_score, 0, 1)
     nLabels, labels, stats, centroids = cv2.connectedComponentsWithStats(text_score_comb.astype(np.uint8), connectivity=4)
 
-    det = []
+    boxes = []
     det_scores = []
     mapper = []
     for k in range(1, nLabels):
@@ -73,11 +73,11 @@ def getDetBoxes_core(textmap, linkmap, text_threshold, link_threshold, low_text)
         box = np.roll(box, 4-startidx, 0)
         box = np.array(box)
 
-        det.append(box)
+        boxes.append(box)
         mapper.append(k)
         det_scores.append(np.max(textmap[labels == k]))
 
-    return det, labels, mapper, det_scores
+    return boxes, labels, mapper, det_scores
 
 def getPoly_core(boxes, labels, mapper, linkmap):
     # configs

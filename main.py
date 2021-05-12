@@ -30,7 +30,7 @@ parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pt
 #parser.add_argument('--image_folder', default='content/cropWords/',help='path to image_folder which contains text images')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batch_size', default=192, type=int, help='input batch size')
-parser.add_argument('--recognition_model', default='weights/20210503.pth', help="path to saved_model to evaluation")
+parser.add_argument('--recognition_model', default='weights/20210511.pth', help="path to saved_model to evaluation")
 #parser.add_argument('--saved_model', default='weights/TPS-VGG-BiLSTM-ATTN-KOR.pth', help="path to saved_model to evaluation")
 """ Data processing """
 parser.add_argument('--batch_max_length', default=40, type=int, help='maximum-label-length')

@@ -225,7 +225,7 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
     request_data_list = []
 
     for idx, bbox in enumerate(bboxes):
-        if np.all(bbox) > 0:
+        if np.all(bbox) >= 0:
             word = crop(bbox, image)
             try:
                 height, width, channel = word.shape
@@ -234,7 +234,8 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
                 cv2.imwrite(static_dir, word)
                 crop_image_list.append(static_dir)
                 request_data_list.append({'path_folder':dirname + filename.split('.')[0], 'order':idx, 'name':img_name, 'height':height, 'width':width})
-            except:
+            except Exception as e:
+                print(e, idx, bbox)
                 continue
 
     data = RawDataset(crop_image_list, opt=args)  # use RawDataset
@@ -249,7 +250,7 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         confidence = prediction[idx]['confidence']
         request_data['confidence'] = confidence
         total_confidence = total_confidence + confidence
-        update_crop_image(request_data)
+        # update_crop_image(request_data)
 
     if len(request_data_list) == 0:
         avg_confidence = 0
@@ -257,8 +258,8 @@ def execute_ocr(filename, file_path, net=None, refine_net=None, model=None, conv
         avg_confidence = round(total_confidence / len(request_data_list), 2)
 
     # update_image
-    update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.recognition_model,
-                  'avg_confidence':avg_confidence, 'width_height_ratio':width_height_ratio})
+    #update_image({'path':args.result_folder + box_filename, 'height':box_height, 'width':box_width, 'model':args.recognition_model,
+    #              'avg_confidence':avg_confidence, 'width_height_ratio':width_height_ratio})
     return prediction
 
 
