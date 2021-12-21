@@ -16,5 +16,5 @@ this implementation has been tested with 64bit Python 3.8.6 and pytorch 1.8.1+cu
 https://towardsdatascience.com/pytorch-scene-text-detection-and-recognition-by-craft-and-a-four-stage-network-ec814d39db05 <br>
 https://github.com/clovaai/CRAFT-pytorch (CRAFT pytorch)<br>
 https://github.com/clovaai/deep-text-recognition-benchmark (recognition)<br>
-https://www.robots.ox.ac.uk/~vgg/data/text/ (text recognition dataset - English)
+https://www.robots.ox.ac.uk/~vgg/data/text/ (text recognition dataset - English)<br>
 https://www.aihub.or.kr/aidata/133 (text recognition dataset - Korean)

@@ -60,7 +60,7 @@ def loss():
     epoch_list = []
     loss_list = {}
     accuracy_list = {}
-    colors = ['#ff0000', '#0000ff', '#f56d798', '#ff8397', '#6970d5']
+    colors = ['#ff0000', '#0000ff', '#7FFFD4', '#ff8397', '#6970d5']
     for model in loss_data:
         epochs = []
         model_list.append(model)

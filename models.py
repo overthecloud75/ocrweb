@@ -67,10 +67,9 @@ def get_images(page=1):
     per_page = 5
     offset = (page - 1) * per_page
 
-    data_list = collection.find(sort=[('path', -1)])
-    count = data_list.count()
+    count = collection.count_documents({})
     paging = paginate(page, per_page, count)
-    data_list = data_list.limit(per_page).skip(offset)
+    data_list = collection.find(sort=[('path', -1)]).limit(per_page).skip(offset)
 
     collection = db['crop_images']
     img_list = []
@@ -100,10 +99,9 @@ def get_detail(page=1, filename=None):
     offset = (page - 1) * per_page
 
     path_folder = args.result_folder + filename.split('.')[0]
-    crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
-    count = crop_list.count()
+    count = collection.count_documents({'path_folder':path_folder})
     paging = paginate(page, per_page, count)
-    crop_list = crop_list.limit(per_page).skip(offset)
+    crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)]).limit(per_page).skip(offset)
 
     crop_imgs = []
     for crop in crop_list:
@@ -123,14 +121,13 @@ def get_summary(page=1):
     per_page = page_default['per_page']
     offset = (page - 1) * per_page
 
-    data_list = collection.find(sort=[('path', -1)])
-    count = data_list.count()
+    count = collection.count_documents({})
     paging = paginate(page, per_page, count)
-    data_list = data_list.limit(per_page).skip(offset)
+    data_list = collection.find(sort=[('path', -1)]).limit(per_page).skip(offset)
 
     collection = db['crop_images']
-    crop_count = collection.find().count()
-    target_count = collection.find({'target':{'$exists':'true'}}).count()
+    crop_count = collection.count_documents({})
+    target_count = collection.count_documents({'target':{'$exists':'true'}})
     total['count'] = crop_count
     total['target'] = target_count
     if count == 0:
@@ -149,10 +146,8 @@ def get_summary(page=1):
         target_count = 0
         learning_rate = 0
         if os.path.isdir(static_path):
-            crop_list = collection.find({'path_folder':path_folder}, sort=[('order', 1)])
-            crop_count = crop_list.count()
-            crop_list = collection.find({'path_folder':path_folder , 'target':{'$exists':'true'}}, sort=[('order', 1)])
-            target_count = crop_list.count()
+            crop_count = collection.count_documents({'path_folder':path_folder})
+            target_count = collection.count_documents({'path_folder':path_folder , 'target':{'$exists':'true'}})
             if crop_count != 0:
                 learning_rate = round(target_count / crop_count * 100, 1)
         img_list[-1]['count'] = crop_count
@@ -172,7 +167,7 @@ def avg_confidence():
     for data in data_list:
         collection = db['crop_images']
         crop_list = collection.find({'path_folder':data['path'].split('.')[0]})
-        count = crop_list.count()
+        count = collection.count_documents({'path_folder':data['path'].split('.')[0]})
         if count > 0:
             total_confidence = 0
             for crop in crop_list:

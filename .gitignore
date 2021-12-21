@@ -6,3 +6,8 @@ upload/
 weights/
 train_data/
 request_test.py
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg

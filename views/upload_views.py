@@ -93,7 +93,7 @@ def upload_file():
     if request.method == 'POST':
         file = request.files['file']
         ocr(file)
-        return redirect(url_for('main.train'))
+        return redirect(url_for('main.prediction'))
     return render_template('upload.html')
 
 @bp.route('/predict', methods=['POST'])
